@@ -3,6 +3,8 @@ source("./helper_fun.R")
 library(ggplot2)
 library(readr)
 library(tools)
+library(dplyr)
+library(gganimate)
 
 strava_export_name <- "export_584780"
 mt_hood_lat <- 45.37359
@@ -38,6 +40,7 @@ for(i in 1:nrow(snow_sports)){
     print(dist_to_hood)
     if(dist_to_hood < 60) {
       gpx_track$Activity.ID <- snow_sports[i,]$Activity.ID
+      gpx_track$Activity.Type <- snow_sports[i,]$Activity.Type
       gpx_track$time <- as.POSIXct(gpx_track$time, format = "%Y-%m-%dT%H:%M:%S", tz = "UTC")
       start_time <- as.numeric(gpx_track[1,]$time)
       gpx_track$time_normal <- as.numeric(gpx_track$time) - start_time
@@ -46,4 +49,14 @@ for(i in 1:nrow(snow_sports)){
   }
 }
 
-ggplot(snow_tracks, aes(x = lon, y = lat)) + coord_quickmap() + geom_point()
+#ggplot(snow_tracks, aes(x = lon, y = lat)) + coord_quickmap() + geom_point()
+ggplot(snow_tracks %>% filter(row_number() %% 10 == 1), aes(x = lon, y = lat, colour = factor(Activity.Type))) + coord_quickmap() + geom_point(size = .1)
+
+ggplot(snow_tracks %>% filter(row_number() %% 10 == 1), aes(x = lon, y = lat, colour = factor(Activity.Type))) + coord_quickmap() + geom_point(size = .1) + theme_void()
+
+ggplot(snow_tracks %>% filter(row_number() %% 10 == 1), aes(x = lon, y = lat, colour = factor(Activity.Type))) + coord_quickmap() + geom_point(size = .1) + theme_void()
+
+ski_hood_plot <- ggplot(snow_tracks %>% filter(row_number() %% 10 == 1), aes(x = lon, y = lat, colour = factor(Activity.Type), group = Activity.ID)) + coord_quickmap() + geom_path(size = .2) + theme_void()
+
+ski_hood_plot + geom_point() + transition_reveal(time_normal)
+
