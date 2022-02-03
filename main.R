@@ -5,6 +5,8 @@ library(readr)
 library(tools)
 library(dplyr)
 library(gganimate)
+library(foreach)
+library(doParallel)
 
 strava_export_name <- "export_584780"
 
@@ -16,10 +18,16 @@ snow_sports <- activities[activities$`Activity.Type` %in% c("Nordic Ski", "Alpin
 
 snow_tracks <- data.frame()
 
-for(i in 1:nrow(snow_sports)){
-  print(snow_sports[i,]$Activity.Name)
+num_of_cores <- detectCores() -1
+cl <- makeCluster(num_of_cores, type="FORK")  
+registerDoParallel(cl)  
+
+start <- proc.time()
+
+snow_tracks <- foreach(i=icount(nrow(snow_sports)), .combine=rbind) %dopar% {
+  #print(snow_sports[i,]$Activity.Name)
   fname <- snow_sports[i,]$Filename
-  print(fname)
+  #print(fname)
   if(!is.na(fname) & file_ext(fname) == "gpx"){
    #print(snow_sports[i,])
     row_gpx <- readGPX(paste("./", strava_export_name, "/", fname, sep = ""))
@@ -47,10 +55,12 @@ for(i in 1:nrow(snow_sports)){
         gpx_track[gpx_track$time_24 > 23,]$time_24 <- gpx_track[gpx_track$time_24 > 23,]$time_24 -24
       }
       
-      snow_tracks <- rbind(snow_tracks, gpx_track)
+      gpx_track
     }
   }
 }
+
+print(proc.time()-start)
 
 
 ggplot(snow_tracks %>% filter(row_number() %% 10 == 1), aes(x = lon, y = lat, colour = factor(Activity.Type))) + coord_quickmap() + geom_point(size = .1) + theme_void()
