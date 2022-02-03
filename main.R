@@ -5,6 +5,7 @@ library(readr)
 library(tools)
 library(dplyr)
 library(gganimate)
+library(ggmap)
 
 strava_export_name <- "export_584780"
 
@@ -52,6 +53,45 @@ for(i in 1:nrow(snow_sports)){
   }
 }
 
+process_strava_act <- function(activity){
+  fname <- activity['Filename']
+  if(!is.na(fname) & file_ext(fname) == "gpx"){
+    row_gpx <- readGPX(paste("./", strava_export_name, "/", fname, sep = ""))
+    gpx_track <- as.data.frame(row_gpx$tracks)
+    colnames(gpx_track) <- c("lon", "lat", "ele", "time")
+    avg_lat <- mean(gpx_track$lat)
+    avg_lon <- mean(gpx_track$lon)
+    
+    dist_to_hood <- haversine(mt_hood_location, c(avg_lat, avg_lon))
+    #print(dist_to_hood)
+    if(dist_to_hood < 60) {
+      print(head(gpx_track))
+      #browser()
+      gpx_track$Activity.ID <- activity$Activity.ID
+      gpx_track$Activity.Type <- activity['Activity.Type']
+      gpx_track$time <- as.POSIXct(gpx_track$time, format = "%Y-%m-%dT%H:%M:%S", tz = "UTC")
+      start_time <- as.numeric(gpx_track[1,]$time)
+      gpx_track$time_normal <- as.numeric(gpx_track$time) - start_time
+      
+      day_time <- strftime(gpx_track$time, format="%H:%M:%S")
+      ref_day <- "2022-01-01"
+      day_time <- as.POSIXct(paste(ref_day, day_time), tz = "PST")
+      ref_time <- as.POSIXct(paste(ref_day, "00:00:00"), tz = "PST")
+      gpx_track$time_24 <- as.numeric(day_time - ref_time)
+      if(max(gpx_track$time_24 > 24)){
+        gpx_track$time_24 <- gpx_track$time_24 / (60*60)
+        gpx_track[gpx_track$time_24 > 23,]$time_24 <- gpx_track[gpx_track$time_24 > 23,]$time_24 -24
+      }
+      
+      #return(rbind(data.frame(), gpx_track))
+      return(gpx_track)
+    }
+  }
+}
+
+process_strava_act(snow_sports[168,])
+
+snow_tracks <- apply(snow_tracks, 1, process_strava_act)
 
 ggplot(snow_tracks %>% filter(row_number() %% 10 == 1), aes(x = lon, y = lat, colour = factor(Activity.Type))) + coord_quickmap() + geom_point(size = .1) + theme_void()
 
