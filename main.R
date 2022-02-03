@@ -64,23 +64,20 @@ snow_tracks <- foreach(i=icount(nrow(snow_sports)), .combine=rbind) %dopar% {
 
 print(proc.time()-start)
 
-
-ggplot(snow_tracks %>% filter(row_number() %% 10 == 1), aes(x = lon, y = lat, colour = factor(Activity.Type))) + coord_quickmap() + geom_point(size = .1) + theme_void()
-
-ski_hood_plot <- ggplot(snow_tracks %>% filter(row_number() %% 10 == 1), aes(x = lon, y = lat, colour = factor(Activity.Type), group = Activity.ID)) + coord_quickmap() + geom_path(size = .2, alpha = .25) + theme_void()
-ski_hood_plot <- ski_hood_plot + theme(legend.position = "none")
-ski_hood_plot
-
-ski_hood_animate <- ski_hood_plot + geom_point(size = 2) + transition_reveal(time_normal)
-
-animate(ski_hood_animate, height = 800, width = 800)
-anim_save("Ski_Hood_samestart.gif")
+# 
+# ski_hood_plot <- ggplot(snow_tracks %>% filter(row_number() %% 10 == 1), aes(x = lon, y = lat, colour = factor(Activity.Type), group = Activity.ID)) + coord_quickmap() + geom_path(size = .2, alpha = .25) + theme_void()
+# ski_hood_plot <- ski_hood_plot + theme(legend.position = "none")
+# ski_hood_plot
+# 
+# ski_hood_animate <- ski_hood_plot + geom_point(size = 2) + transition_reveal(time_normal)
+# 
+# animate(ski_hood_animate, height = 800, width = 800)
+# anim_save("Ski_Hood_samestart.gif")
 
 ski_hood_plot <- ggplot(snow_tracks %>% filter(row_number() %% 10 == 1), aes(x = lon, y = lat, colour = factor(Activity.Type), group = Activity.ID)) + coord_quickmap() + geom_path(size = .2, alpha = .25) + theme_void()
 ski_hood_plot <- ski_hood_plot + theme(legend.position = "none")
 ski_hood_plot
 
-#ski_hood_plot <- labs(title = 'Hour: {frame}')
 
 ski_hood_animate <- ski_hood_plot + geom_point(size = 2) + transition_reveal(time_24)
 ski_hood_animate <- ski_hood_animate + labs(title = 'Hour: {round(frame_along)}')
