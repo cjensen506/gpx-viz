@@ -27,19 +27,17 @@ registerDoParallel(cl)
 start <- proc.time()
 
 snow_tracks <- foreach(i=icount(nrow(snow_sports)), .combine=rbind) %dopar% {
-  #print(snow_sports[i,]$Activity.Name)
   fname <- snow_sports[i,]$Filename
-  #print(fname)
   if(!is.na(fname) & file_ext(fname) == "gpx"){
-   #print(snow_sports[i,])
     row_gpx <- readGPX(paste("./", strava_export_name, "/", fname, sep = ""))
     gpx_track <- as.data.frame(row_gpx$tracks)
     colnames(gpx_track) <- c("lon", "lat", "ele", "time")
+    
     avg_lat <- mean(gpx_track$lat)
     avg_lon <- mean(gpx_track$lon)
     
     dist_to_hood <- haversine(mt_hood_location, c(avg_lat, avg_lon))
-    print(dist_to_hood)
+    
     if(dist_to_hood < 60) {
       gpx_track$Activity.ID <- snow_sports[i,]$Activity.ID
       gpx_track$Activity.Type <- snow_sports[i,]$Activity.Type
@@ -56,7 +54,6 @@ snow_tracks <- foreach(i=icount(nrow(snow_sports)), .combine=rbind) %dopar% {
         gpx_track$time_24 <- gpx_track$time_24 / (60*60)
         gpx_track[gpx_track$time_24 > 23,]$time_24 <- gpx_track[gpx_track$time_24 > 23,]$time_24 -24
       }
-      
       gpx_track
     }
   }
@@ -74,7 +71,7 @@ print(proc.time()-start)
 # animate(ski_hood_animate, height = 800, width = 800)
 # anim_save("Ski_Hood_samestart.gif")
 
-ski_hood_plot <- ggplot(snow_tracks %>% filter(row_number() %% 10 == 1), aes(x = lon, y = lat, colour = factor(Activity.Type), group = Activity.ID)) + coord_quickmap() + geom_path(size = .2, alpha = .25) + theme_void()
+ski_hood_plot <- ggplot(snow_tracks %>% filter(row_number() %% 10 == 1), aes(x = lon, y = lat, colour = factor(Activity.Type), group = Activity.ID)) + coord_quickmap() + geom_path(size = .2, alpha = .75) + theme_void()
 ski_hood_plot <- ski_hood_plot + theme(legend.position = "none")
 ski_hood_plot
 
@@ -85,3 +82,8 @@ ski_hood_animate <- ski_hood_animate + labs(title = 'Hour: {round(frame_along)}'
 animate(ski_hood_animate, height = 800, width = 800, duration = 24, fps = 15)
 anim_save("Ski_Hood_day.gif")
 
+map <- get_stamenmap( bbox = c(left = -121.8425, bottom = 45.2577, right = -121.5424, top = 45.4690), zoom = 12, maptype = "terrain-background")
+
+map_plot <- ggmap(map) + geom_path(aes(x = lon, y = lat, colour = factor(Activity.Type), group = Activity.ID), data = snow_tracks %>% filter(row_number() %% 10 == 1), size = .3, alpha = 1) + theme(legend.position = "none")
+map_plot <- map_plot + scale_color_manual(values = c("#FF9A3B", "#3BA0FF"))
+map_plot
