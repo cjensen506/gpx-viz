@@ -61,6 +61,8 @@ snow_tracks <- foreach(i=icount(nrow(snow_sports)), .combine=rbind) %dopar% {
 
 print(proc.time()-start)
 
+registerDoSEQ()
+
 # 
 # ski_hood_plot <- ggplot(snow_tracks %>% filter(row_number() %% 10 == 1), aes(x = lon, y = lat, colour = factor(Activity.Type), group = Activity.ID)) + coord_quickmap() + geom_path(size = .2, alpha = .25) + theme_void()
 # ski_hood_plot <- ski_hood_plot + theme(legend.position = "none")
@@ -71,19 +73,42 @@ print(proc.time()-start)
 # animate(ski_hood_animate, height = 800, width = 800)
 # anim_save("Ski_Hood_samestart.gif")
 
-ski_hood_plot <- ggplot(snow_tracks %>% filter(row_number() %% 10 == 1), aes(x = lon, y = lat, colour = factor(Activity.Type), group = Activity.ID)) + coord_quickmap() + geom_path(size = .2, alpha = .75) + theme_void()
-ski_hood_plot <- ski_hood_plot + theme(legend.position = "none")
+ski_hood_plot <- ggplot(snow_tracks %>% filter(row_number() %% 10 == 1), aes(x = lon, y = lat, group = Activity.ID)) + coord_quickmap() + geom_path(size = .2, alpha = .75, aes(colour = factor(Activity.Type))) + theme_void()
+ski_hood_plot <- ski_hood_plot + theme(legend.position = "none") + scale_color_manual(values = c("#FF9A3B", "#3BA0FF"))
+ski_hood_plot <- ski_hood_plot + labs(title = "A day of skiing on Mt. Hood", caption = "https://github.com/cjensen506/gpx-viz") + theme(plot.title = element_text(size = 24))
 ski_hood_plot
 
+ggsave(filename = "Ski_Hood_day.png", units = "px", height = 2400, width = 2400, bg = "#FFFFFF")
 
 ski_hood_animate <- ski_hood_plot + geom_point(size = 2) + transition_reveal(time_24)
-ski_hood_animate <- ski_hood_animate + labs(title = 'Hour: {round(frame_along)}')
+ski_hood_animate <- ski_hood_animate + labs(subtitle = '{round(frame_along)}:00')
+ski_hood_animate <- ski_hood_animate + theme(plot.subtitle = element_text(size = 18))
 
 animate(ski_hood_animate, height = 800, width = 800, duration = 24, fps = 15)
 anim_save("Ski_Hood_day.gif")
 
-map <- get_stamenmap( bbox = c(left = -121.8425, bottom = 45.2577, right = -121.5424, top = 45.4690), zoom = 12, maptype = "terrain-background")
+
+l_lon <- min(snow_tracks$lon)
+b_lat <- min(snow_tracks$lat)
+r_lon <- max(snow_tracks$lon)
+t_lat <- max(snow_tracks$lat)
+
+map_pad <-(t_lat-b_lat) * .05
+map_coord <- c(left = l_lon - map_pad, bottom = b_lat - map_pad, right = r_lon + map_pad, top = t_lat + map_pad)
+
+map <- get_stamenmap( bbox = map_coord, zoom = 12, maptype = "terrain-background")
 
 map_plot <- ggmap(map) + geom_path(aes(x = lon, y = lat, colour = factor(Activity.Type), group = Activity.ID), data = snow_tracks %>% filter(row_number() %% 10 == 1), size = .3, alpha = 1) + theme(legend.position = "none")
+map_plot <- map_plot + theme_void() + theme(legend.position = "none")
 map_plot <- map_plot + scale_color_manual(values = c("#FF9A3B", "#3BA0FF"))
+map_plot <- map_plot + labs(title = "A day of skiing on Mt. Hood", caption = "https://github.com/cjensen506/gpx-viz") + theme(plot.title = element_text(size = 24))
 map_plot
+
+ggsave(filename = "Ski_Hood_day_map.png", units = "px", height = 2400, width = 2400, bg = "#FFFFFF")
+
+ski_hood_animate_map <- map_plot + geom_point(aes(x = lon, y = lat, group = Activity.ID), size = 2, data = snow_tracks %>% filter(row_number() %% 10 == 1)) + transition_reveal(time_24)
+ski_hood_animate_map <- ski_hood_animate_map + labs(subtitle = '{round(frame_along)}:00')
+ski_hood_animate_map <- ski_hood_animate_map + theme(plot.subtitle = element_text(size = 18))
+
+animate(ski_hood_animate_map, height = 800, width = 800, duration = 24, fps = 15)
+anim_save("Ski_Hood_day_map.gif")
